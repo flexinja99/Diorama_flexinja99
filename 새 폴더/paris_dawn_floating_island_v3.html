@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PARIS · L'AUBE — 파리 · 새벽과 밤의 라이트쇼</title>
+<style>
+:root{color-scheme:dark;font-family:Inter, 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#8597aa}
+#scene{position:fixed;inset:0}canvas{display:block}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 53% 42%,transparent 45%,rgba(14,24,39,.24) 100%)}
+header{position:fixed;top:35px;left:43px;z-index:4;color:#f7f3ed;text-shadow:0 1px 13px #1b2d3e4d;pointer-events:none}
+.eyebrow{font-size:11px;letter-spacing:.34em;text-transform:uppercase;font-weight:700;color:#ffdac0}
+header h1{font-family:Georgia,'Times New Roman',serif;font-size:clamp(32px,3.8vw,60px);font-weight:400;letter-spacing:-.047em;line-height:1;margin:12px 0 10px}header h1 em{font-weight:400;font-style:italic;color:#ffd9bb}
+.sub{font-size:12px;color:#ecf1f7b8;line-height:1.9;letter-spacing:.02em}
+.side{max-height:calc(100dvh - 56px);overflow-y:auto;scrollbar-width:thin;position:fixed;right:26px;top:28px;z-index:4;width:220px;padding:18px;border:1px solid #f1f7ff28;border-radius:17px;background:linear-gradient(135deg,#13283bce,#172b37af);backdrop-filter:blur(18px);box-shadow:0 12px 45px #0b1b2d33;color:#eaf0f3}
+.side .kicker{font-size:9px;letter-spacing:.19em;color:#c4d8e3a8;margin-bottom:15px;font-weight:700}
+.item{margin:15px 0 0}.item:first-of-type{margin-top:0}
+.field{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#e1e9ed;letter-spacing:.05em;margin-bottom:8px}.value{font-variant-numeric:tabular-nums;color:#ffd5af;font-size:10px}
+input[type=range]{width:100%;height:3px;margin:4px 0;accent-color:#e9be93;cursor:pointer}
+button{appearance:none;border:1px solid #ffffff28;background:#ffffff11;color:#f4f5f4;border-radius:9px;font:inherit;cursor:pointer;transition:background .2s,border .2s}button:disabled{opacity:.45;cursor:default}button[aria-pressed="true"]{background:#d9b17c38;border-color:#f4cb8d99}.time-presets{display:flex;gap:7px;margin-top:9px}.time-presets button{flex:1;padding:7px;font-size:11px}.show-state{font-size:10px;color:#dfd6c3;line-height:1.6;margin-top:8px}button:hover{background:#ffffff25;border-color:#ffffff55}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:17px}.actions button{height:32px;font-size:10px}.actions button.primary{grid-column:span 2;background:#e7c4a41e;border-color:#e9c9aa55}
+.bottom{position:fixed;bottom:27px;left:42px;color:#e9f0f2;pointer-events:none;z-index:3;font-size:11px;letter-spacing:.055em;text-shadow:0 2px 8px #16263555}.bottom small{display:block;margin-top:7px;color:#eff3f4a0;font-size:10px}
+.badge{position:fixed;bottom:25px;right:28px;color:#ebf2f2a0;font-size:10px;letter-spacing:.13em;z-index:3;text-align:right;pointer-events:none}.badge span{display:block;color:#ffd6ad;font-family:Georgia,serif;font-size:15px;letter-spacing:.02em;padding-bottom:4px}
+#loading{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#768c9d,#d4a79d);color:#fff;transition:opacity .9s}.loader-title{font:italic 46px Georgia,serif;margin-bottom:12px}.loader-sub{font-size:11px;letter-spacing:.27em;text-transform:uppercase}.loader-line{width:170px;height:1px;background:#ffffff5e;margin-top:24px;overflow:hidden}.loader-line:after{content:"";display:block;background:#fff;width:50px;height:100%;animation:move 1.1s infinite alternate}@keyframes move{from{transform:translateX(0)}to{transform:translateX(120px)}}
+#error{display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;padding:30px;background:#172737;color:#f7f7f7;text-align:center;line-height:1.8}
+@media(max-width:760px){header{top:20px;left:21px}header h1{font-size:35px}.sub{font-size:10px}.side{max-height:calc(100dvh - 150px);top:auto;bottom:72px;right:12px;width:172px;padding:12px}.side .kicker{margin-bottom:8px}.item{margin-top:7px}.actions{margin-top:8px}.bottom{left:18px;bottom:23px;font-size:10px}.badge{display:none}}
+</style>
+<script type="importmap">{
+"imports":{
+"three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="scene"></div><div id="vignette"></div>
+<header><div class="eyebrow">MINIATURE WORLD · NO. 01</div><h1>Paris, <em id="sceneTimeTitle">l'aube.</em></h1><div class="sub"><span id="sceneSubtitle">비가 지나가는 파리의 새벽</span><br>에펠탑과 센 강을 품은 작은 부유섬</div></header>
+<div class="side">
+ <div class="kicker">SCENE CONTROLS / 장면 설정</div>
+ <div class="item"><div class="field"><label for="timeOfDay">시간대 · 새벽에서 밤</label><span id="timeOfDayText" class="value">새벽</span></div><input id="timeOfDay" type="range" min="0" max="100" value="0" aria-valuetext="새벽"></div>
+ <div class="time-presets"><button id="dawnPreset" aria-pressed="true">새벽</button><button id="nightPreset" aria-pressed="false">밤 + 라이트쇼</button></div>
+ <div class="show-state" id="showStatus" role="status">밤이 되면 에펠탑 조명이 켜집니다.</div>
+ <div class="item"><div class="field"><label for="rain">가랑비 · RAINFALL</label><span id="rainText" class="value">35%</span></div><input id="rain" type="range" min="0" max="100" value="35"></div>
+ <div class="item"><div class="field"><label for="flow">강물 흐름 · WATER FLOW</label><span id="flowText" class="value">62%</span></div><input id="flow" type="range" min="0" max="100" value="62"></div>
+ <div class="item"><div class="field"><label for="waves">물결 높이 · WAVE DETAIL</label><span id="wavesText" class="value">75%</span></div><input id="waves" type="range" min="0" max="100" value="75"></div>
+ <div class="item"><div class="field"><label for="light">조명 밝기 · LIGHT LEVEL</label><span id="lightText" class="value">65%</span></div><input id="light" type="range" min="5" max="100" value="65"></div>
+ <div class="item"><div class="field"><label for="mist">물안개 · MIST</label><span id="mistText" class="value">28%</span></div><input id="mist" type="range" min="0" max="100" value="28"></div>
+ <div class="actions"><button id="lightShow" class="primary" aria-pressed="true" disabled>라이트쇼 자동 켜짐</button><button id="overview" class="primary">◇ 기본 구도</button><button id="tower">⌕ 에펠탑</button><button id="riverside">≋ 강변</button><button id="spin">⟳ 자동 회전</button><button id="pause">Ⅱ 애니메이션</button></div>
+</div>
+<div class="bottom">↔ 마우스 드래그: 회전 &nbsp; · &nbsp; ◇ 스크롤: 확대/축소 <small>실시간 수면 반사 · 잔물결 · 새벽에서 밤까지 · 에펠탑 라이트쇼</small></div>
+<div class="badge"><span>La Ville Lumière</span>48°51′ N &nbsp; · &nbsp; DAWN / NIGHT</div>
+<div id="loading"><div class="loader-title">Paris at Dawn</div><div class="loader-sub">Building a little world</div><div class="loader-line"></div></div>
+<div id="error"><div><strong>3D 장면을 열지 못했습니다.</strong><br>Chrome 또는 Edge에서 열고 인터넷 연결을 확인해 주세요.<br><small id="errorDetail"></small></div></div>
+<script type="module">
+import * as THREE from 'three';
+import { Reflector } from 'three/addons/objects/Reflector.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+try {
+const scene = new THREE.Scene();
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.85));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x9eabba);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+const camera = new THREE.PerspectiveCamera(36, innerWidth/innerHeight, .1, 650);
+camera.position.set(61, 42, 72);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(-1, 11.5, 0);
+controls.enableDamping=true; controls.dampingFactor=.055;
+controls.minDistance=17; controls.maxDistance=157;
+controls.maxPolarAngle=Math.PI*.49; controls.minPolarAngle=.22;
+controls.autoRotate=false; controls.autoRotateSpeed=.38;
+controls.update();
+
+// Procedural random source ensures the miniature looks identical on each opening.
+let seed=248577; function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;} function rr(a,b){return a+(b-a)*rnd();}
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const wetStone = new THREE.MeshStandardMaterial({color:0xb7ada1,roughness:.68,metalness:.015});
+const paleStone = new THREE.MeshStandardMaterial({color:0xd4c8b8,roughness:.84});
+const trimStone = new THREE.MeshStandardMaterial({color:0xe7d8c1,roughness:.7});
+const deepStone = new THREE.MeshStandardMaterial({color:0x79736c,roughness:.91});
+const bronze = new THREE.MeshStandardMaterial({color:0x6f594b,metalness:.67,roughness:.47});
+const bronzeWarm = new THREE.MeshStandardMaterial({color:0x92705a,metalness:.72,roughness:.42});
+const bronzeShade = new THREE.MeshStandardMaterial({color:0x473e39,metalness:.60,roughness:.49});
+const blackIron = new THREE.MeshStandardMaterial({color:0x30383d,metalness:.74,roughness:.4});
+const roofMaterial = new THREE.MeshStandardMaterial({color:0x68717b,metalness:.21,roughness:.53});
+const roofAlt = new THREE.MeshStandardMaterial({color:0x525b67,metalness:.18,roughness:.62});
+const foliageMaterials=[0x445b51,0x556e5d,0x667661,0x364f49,0x62746b].map(color=>new THREE.MeshStandardMaterial({color,roughness:.91}));
+const groundWet = new THREE.MeshStandardMaterial({color:0x999b9a,roughness:.35,metalness:.05});
+const glowGold = new THREE.MeshStandardMaterial({color:0xffc989,emissive:0xe5a46c,emissiveIntensity:1.6,roughness:.27});
+
+// Original procedural textures: no third-party image or model assets.
+function stoneTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#c7bdaf';g.fillRect(0,0,512,512);
+ for(let i=0;i<27000;i++){let x=rnd()*512,y=rnd()*512,v=Math.round(rr(95,230));g.fillStyle=`rgba(${v},${Math.max(50,v-8)},${Math.max(50,v-21)},${rr(.015,.07)})`;g.fillRect(x,y,rr(.4,2.5),rr(.4,2.4));}
+ g.strokeStyle='rgba(82,74,65,.20)';g.lineWidth=1.5;
+ for(let y=0;y<512;y+=59){g.beginPath();g.moveTo(0,y);g.lineTo(512,y);g.stroke();for(let x=((Math.round(y/59)%2)*66);x<512;x+=132){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+59);g.stroke();}}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);t.anisotropy=8;return t;}
+function roofTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#75808a';g.fillRect(0,0,512,512);
+ for(let y=0;y<512;y+=17){for(let x=(Math.round(y/17)%2)*18;x<512;x+=36){let k=Math.floor(rr(95,157));g.fillStyle=`rgb(${k},${k+7},${k+15})`;g.fillRect(x+1,y+1,34,15);g.fillStyle='#ffffff14';g.fillRect(x+1,y+1,34,1);}}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1.3,1.4);t.anisotropy=8;return t;}
+function pavingTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#a8a39a';g.fillRect(0,0,512,512);
+ for(let y=0;y<512;y+=32){for(let x=-80+((Math.round(y/32)%2)*32);x<512;x+=64){let k=Math.round(rr(135,186));g.fillStyle=`rgb(${k},${k-2},${k-5})`;g.fillRect(x+1,y+1,62,30);g.fillStyle='rgba(48,53,54,.07)';g.fillRect(x+2,y+28,60,2);}}
+ for(let i=0;i<10000;i++){let k=Math.round(rr(100,200));g.fillStyle=`rgba(${k},${k},${k},.055)`;g.fillRect(rr(0,512),rr(0,512),1,1)}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(12,9);t.anisotropy=8;return t;}
+const stoneMap=stoneTexture(), slateMap=roofTexture(), paveMap=pavingTexture();
+paleStone.map=stoneMap;paleStone.bumpMap=stoneMap;paleStone.bumpScale=.04;
+roofMaterial.map=slateMap;roofMaterial.bumpMap=slateMap;roofMaterial.bumpScale=.025;roofMaterial.side=THREE.DoubleSide;roofAlt.side=THREE.DoubleSide;
+const pavingMaterial=new THREE.MeshStandardMaterial({color:0xbab9b6,map:paveMap,roughness:.47,metalness:.065, bumpMap:paveMap,bumpScale:.025});
+
+function mesh(geo,mat,x=0,y=0,z=0,cast=true,receive=true){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=receive;scene.add(m);return m;}
+function box(w,h,d,mat,x,y,z,cast=true){return mesh(new THREE.BoxGeometry(w,h,d),mat,x,y,z,cast);}
+function plane(w,d,mat,x,y,z){const o=mesh(new THREE.PlaneGeometry(w,d),mat,x,y,z,false,true);o.rotation.x=-Math.PI/2;return o;}
+
+// Plane-tree bark: mottled peeling patches and fine vertical creases.
+function barkTexture(){
+ const c=document.createElement('canvas');c.width=256;c.height=512;const g=c.getContext('2d');g.fillStyle='#807d68';g.fillRect(0,0,256,512);
+ for(let i=0;i<650;i++){g.fillStyle=['#aaa78b','#626752','#96957a','#bab69a','#73715e'][i%5];g.beginPath();g.ellipse(rr(0,256),rr(0,512),rr(2,17),rr(5,38),rr(-.35,.35),0,Math.PI*2);g.fill();}
+ g.strokeStyle='#333b323d';g.lineWidth=.7;for(let i=0;i<160;i++){let x=rr(0,256),y=rr(0,512);g.beginPath();g.moveTo(x,y);g.lineTo(x+rr(-3,3),y+rr(5,42));g.stroke();}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
+}
+const barkMap=barkTexture();
+const barkMaterial=new THREE.MeshStandardMaterial({color:0xb8b3a0,map:barkMap,bumpMap:barkMap,bumpScale:.018,roughness:.94});
+// Low-contrast damp variation breaks up uniformly polished stone.
+const dampCanvas=document.createElement('canvas');dampCanvas.width=dampCanvas.height=256;
+const dampCtx=dampCanvas.getContext('2d');dampCtx.fillStyle='#c4c4c4';dampCtx.fillRect(0,0,256,256);
+for(let i=0;i<100;i++){let x=rr(0,256),y=rr(0,256),r=rr(8,50),g=dampCtx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'#51515140');g.addColorStop(1,'#51515100');dampCtx.fillStyle=g;dampCtx.fillRect(x-r,y-r,r*2,r*2);}
+const dampMap=new THREE.CanvasTexture(dampCanvas);dampMap.wrapS=dampMap.wrapT=THREE.RepeatWrapping;dampMap.repeat.set(5,4);
+pavingMaterial.roughnessMap=dampMap;pavingMaterial.roughness=.91;pavingMaterial.metalness=.015;pavingMaterial.bumpScale=.045;
+wetStone.roughnessMap=dampMap;wetStone.roughness=.82;
+
+// Geometry batching dramatically reduces draw calls for the thousands of real lattice beams.
+const beamPools=new Map(); const boxPools=new Map();
+let buildingTower=false;
+const towerBronze=bronze.clone(),towerBright=bronzeWarm.clone(),towerShade=bronzeShade.clone();
+const towerMaterials=[towerBronze,towerBright,towerShade];
+for(const material of towerMaterials){material.emissive.set(0xffa52e);material.emissiveIntensity=0;}
+function towerKind(kind){return buildingTower&&['bronze','bright','dark'].includes(kind)?'tower_'+kind:kind;}
+function addBeam(a,b,r,kind='bronze'){kind=towerKind(kind);let L=beamPools.get(kind);if(!L){L=[];beamPools.set(kind,L)};L.push({a,b,r});}
+function addCube(x,y,z,w,h,d,kind='stone'){kind=towerKind(kind);let L=boxPools.get(kind);if(!L){L=[];boxPools.set(kind,L)}L.push([x,y,z,w,h,d]);}
+function flushBatches(){const kinds={tower_bronze:towerBronze,tower_bright:towerBright,tower_dark:towerShade,bark:barkMaterial,bronze,bright:bronzeWarm,dark:bronzeShade,iron:blackIron,stone:paleStone,trim:trimStone,roof:roofMaterial};
+ const temp=new THREE.Object3D();const cyl=new THREE.CylinderGeometry(1,1,1,7);const cube=new THREE.BoxGeometry(1,1,1);
+ for(const [name,L] of beamPools){if(!L.length)continue;const m=new THREE.InstancedMesh(cyl,kinds[name]||bronze,L.length);let n=0;for(const {a,b,r} of L){const va=new THREE.Vector3(...a),vb=new THREE.Vector3(...b),diff=vb.clone().sub(va);if(diff.length()<.0001)continue;temp.position.copy(va.add(vb).multiplyScalar(.5));temp.quaternion.setFromUnitVectors(V(0,1,0),diff.clone().normalize());temp.scale.set(r,diff.length(),r);temp.updateMatrix();m.setMatrixAt(n++,temp.matrix);}m.count=n;m.castShadow=true;m.receiveShadow=true;m.instanceMatrix.needsUpdate=true;scene.add(m)}
+ for(const [name,L] of boxPools){if(!L.length)continue;let m=new THREE.InstancedMesh(cube,kinds[name]||paleStone,L.length);for(let i=0;i<L.length;i++){const [x,y,z,w,h,d]=L[i];temp.position.set(x,y,z);temp.quaternion.identity();temp.scale.set(w,h,d);temp.updateMatrix();m.setMatrixAt(i,temp.matrix);}m.instanceMatrix.needsUpdate=true;m.castShadow=true;m.receiveShadow=true;scene.add(m)}
+}
+
+// A broad, beveled square plinth with strata and a rocky hanging underside.
+box(54,3.1,42,new THREE.MeshStandardMaterial({color:0x766e67,roughness:.89}),0,-1.65,0);
+// Leave an actual opening over the river. The old full-width cap had its
+// top at +0.045, hiding the water surface at -0.026 beneath opaque stone.
+const channelNear=6.62,channelFar=14.74,plinthEdge=21.3;
+box(54.6,.16,channelNear+plinthEdge,trimStone,0,-.035,(channelNear-plinthEdge)/2);
+box(54.6,.16,plinthEdge-channelFar,trimStone,0,-.035,(channelFar+plinthEdge)/2);
+box(54.9,.12,42.9,deepStone,0,-.23,0);
+box(54.3,.22,42.3,wetStone,0,-.37,0);
+for(let h=0;h<4;h++){let y=-.9-h*.71;addCube(0,y,-21.02,54,.043,.07,'trim');addCube(0,y,21.02,54,.043,.07,'trim');addCube(-27.01,y,0,.06,.043,42,'trim');addCube(27.01,y,0,.06,.043,42,'trim')}
+const rings=[{y:-3.1,w:53,d:41},{y:-3.95,w:47,d:36},{y:-4.9,w:40,d:30},{y:-6.1,w:31,d:23},{y:-7.2,w:21,d:14},{y:-8.35,w:9,d:6},{y:-8.8,w:1,d:1}];
+const vertices=[], colors=[], indices=[];const S=44;
+for(let j=0;j<rings.length;j++){let {y,w,d}=rings[j];for(let i=0;i<S;i++){let t=i/S*4;let px,pz;if(t<1){px=-w/2+t*w;pz=-d/2;}else if(t<2){px=w/2;pz=-d/2+(t-1)*d;}else if(t<3){px=w/2-(t-2)*w;pz=d/2;}else{px=-w/2;pz=d/2-(t-3)*d;}
+ let perturb=(j===0?0:rr(-.72,.72));vertices.push(px+perturb,y+rr(-.13,.13),pz+perturb);
+ let v=rr(.70,1.05)*(1-j*.022);colors.push(.47*v,.44*v,.42*v);}}
+for(let j=0;j<rings.length-1;j++){for(let i=0;i<S;i++){let a=j*S+i,b=j*S+(i+1)%S,c=(j+1)*S+i,d=(j+1)*S+(i+1)%S;indices.push(a,b,c,b,d,c);}}
+const cliff=new THREE.BufferGeometry();cliff.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));cliff.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));cliff.setIndex(indices);cliff.computeVertexNormals();mesh(cliff,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,side:THREE.DoubleSide}),0,0,0);
+// Underside ridges and hanging stone fractures.
+for(let k=0;k<38;k++){let x=rr(-19,19),z=rr(-14,14),drop=rr(.3,1.7);addBeam([x,-4,z],[x+rr(-.5,.5),-4-drop,z+rr(-.4,.4)],rr(.05,.13),'dark');}
+
+// Ground plots and the Seine, sunken into the slab.
+plane(53.75,27.48,pavingMaterial,0,.065,-7.16);
+plane(53.75,5.55,pavingMaterial,0,.065,18.12);
+const lawnMat=new THREE.MeshStandardMaterial({color:0x526753,roughness:.97});
+plane(10.1,3.2,lawnMat,-19,.089,4.3);plane(11,3.35,lawnMat,17,.089,4.35);
+plane(18,3.0,lawnMat,-16,.087,-17.5);plane(10,2.4,lawnMat,20,.087,-17.6);
+plane(24,15.2,pavingMaterial,-4,.115,-4.2);
+const plazaOuter=new THREE.MeshStandardMaterial({color:0xd0c4b3,roughness:.51,metalness:.045});
+for(const [w,d,x,z] of [[25.4,.28,-4,-12],[25.4,.28,-4,3.9],[.28,16,-16.6,-4],[.28,16,8.6,-4]]) plane(w,d,plazaOuter,x,.126,z);
+// Natural river: actual scene reflection, small advected waves, no painted foam.
+const waterUniforms={uTime:{value:0},uSpeed:{value:.62},uWaves:{value:.75},uSun:{value:.65},uNight:{value:0}};
+const waveFunctions=`
+ float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+ float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*f*(f*(f*6.-15.)+10.);return mix(mix(hash21(i),hash21(i+vec2(1.,0.)),f.x),mix(hash21(i+vec2(0.,1.)),hash21(i+vec2(1.,1.)),f.x),f.y);}
+ float waterHeight(vec2 p,float t){
+   float bank=1.-smoothstep(2.8,4.06,abs(p.y-10.68));
+   vec2 q=p-vec2(t*(.24+.14*bank),0.);
+   float broad=sin(q.x*.73+q.y*1.12)*.008+sin(q.x*1.37-q.y*1.91)*.004;
+   float ripples=sin(q.x*3.1+q.y*4.7+sin(q.x*.43+q.y*.71)*.65)*.0045;
+   float fine=sin(q.x*7.4-q.y*9.2+t*.04)*.0012;
+   return uWaves*(broad+ripples+fine)*(.65+.35*bank);
+ }
+`;
+const riverVertex=`
+ precision highp float;
+ uniform float uTime,uWaves;
+ uniform mat4 textureMatrix;
+ varying vec3 vWorld;
+ varying vec4 vMirror;
+ ${waveFunctions}
+ void main(){
+   vec3 p=position;
+   vec4 world=modelMatrix*vec4(p,1.);
+   p.z+=waterHeight(world.xz,uTime);
+   vWorld=(modelMatrix*vec4(p,1.)).xyz;
+   vMirror=textureMatrix*vec4(p,1.);
+   gl_Position=projectionMatrix*viewMatrix*vec4(vWorld,1.);
+ }`;
+const riverFragment=`
+ precision highp float;
+ uniform sampler2D tDiffuse;
+ uniform float uTime,uWaves,uSun,uNight;
+ varying vec3 vWorld;
+ varying vec4 vMirror;
+ ${waveFunctions}
+ void main(){
+   vec2 p=vWorld.xz;
+   float e=.035;
+   float dx=(waterHeight(p+vec2(e,0.),uTime)-waterHeight(p-vec2(e,0.),uTime))/(2.*e);
+   float dz=(waterHeight(p+vec2(0.,e),uTime)-waterHeight(p-vec2(0.,e),uTime))/(2.*e);
+   vec3 normal=normalize(vec3(-dx,1.,-dz));
+   vec3 view=normalize(cameraPosition-vWorld);
+   float facing=max(dot(normal,view),0.);
+   float fresnel=.025+.975*pow(1.-facing,5.);
+   // Project the water slope into camera space so distortion follows the view.
+   vec3 viewSlope=mat3(viewMatrix)*vec3(dx,0.,dz);
+   vec2 uv=vMirror.xy/vMirror.w+viewSlope.xy*.045;
+   uv=clamp(uv,vec2(.004),vec2(.996));
+   // Soft reflection keeps architecture recognizable without a hard mirror finish.
+   float blur=.0007+.0008*(1.-facing);
+   vec3 reflection=texture2D(tDiffuse,uv).rgb*.48;
+   reflection+=texture2D(tDiffuse,uv+vec2(blur,0.)).rgb*.13;
+   reflection+=texture2D(tDiffuse,uv-vec2(blur,0.)).rgb*.13;
+   reflection+=texture2D(tDiffuse,uv+vec2(0.,blur)).rgb*.13;
+   reflection+=texture2D(tDiffuse,uv-vec2(0.,blur)).rgb*.13;
+   // Approximate an uneven submerged riverbed, seen through absorbing river water.
+   // Bed coordinates stay fixed; only refraction moves, never the stones themselves.
+   float fromShore=max(0.,4.06-abs(p.y-10.68));
+   float depth=.12+2.8*smoothstep(0.,2.4,fromShore);
+   depth+=noise2(p*.42)*.20;
+   vec2 bedUV=p+vec2(dx,dz)*depth*.25;
+   float silt=noise2(bedUV*2.3)*.65+noise2(bedUV*8.7)*.35;
+   vec3 bed=mix(vec3(.12,.115,.079),vec3(.25,.23,.17),silt);
+   float pathLength=depth/max(.32,facing);
+   vec3 transmittance=exp(-vec3(1.35,.82,.69)*pathLength);
+   vec3 waterTint=vec3(.028,.095,.102);
+   vec3 body=(bed*transmittance+waterTint*(vec3(1.)-transmittance))*mix(1.,.12,uNight);
+   float reflectionWeight=clamp(.32+.68*fresnel,.32,.98);
+   vec3 color=mix(body,reflection,reflectionWeight);
+   vec3 sun=normalize(vec3(-48.,56.,44.));
+   vec3 halfVector=normalize(sun+view);
+   float glint=pow(max(dot(normal,halfVector),0.),180.);
+   color+=vec3(1.,.79,.56)*glint*uSun*.55;
+   gl_FragColor=vec4(color,1.);
+   #include <tonemapping_fragment>
+   #include <colorspace_fragment>
+ }`;
+const riverWater=new Reflector(new THREE.PlaneGeometry(53.73,8.12,255,64),{
+ textureWidth:1024,textureHeight:1024,clipBias:.003,
+ shader:{uniforms:{color:{value:new THREE.Color(0x7f7f7f)},tDiffuse:{value:null},textureMatrix:{value:new THREE.Matrix4()},...waterUniforms},vertexShader:riverVertex,fragmentShader:riverFragment}
+});
+// Reflector clones uniforms; keep animation and sliders attached to the live ones.
+Object.assign(waterUniforms,riverWater.material.uniforms);
+riverWater.rotation.x=-Math.PI/2;riverWater.position.set(0,-.026,10.68);
+riverWater.frustumCulled=false;scene.add(riverWater);
+// Semi-transparent shore disturbance ribbons. Their texture translates downstream.
+function shoreFoamTexture(){const c=document.createElement('canvas');c.width=1024;c.height=128;
+ const g=c.getContext('2d');g.clearRect(0,0,1024,128);
+ for(let i=0;i<2400;i++){
+   const x=rr(0,1024),y=rr(0,128),shore=Math.pow(1-y/128,2.6),a=rr(.02,.2)*shore;
+   g.fillStyle=`rgba(223,236,233,${a.toFixed(3)})`;g.beginPath();g.ellipse(x,y,rr(1.8,26),rr(.4,1.8),rr(-.14,.14),0,Math.PI*2);g.fill();
+ }
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;
+}
+const foamMap=shoreFoamTexture(),foamBands=[];
+for(const [z,reverse] of [[7.14,false],[14.23,true]]){
+ const foamMat=new THREE.MeshBasicMaterial({map:foamMap,transparent:true,opacity:.68,depthWrite:false,side:THREE.DoubleSide});
+ const p=new THREE.Mesh(new THREE.PlaneGeometry(53.46,.84),foamMat);
+ p.rotation.x=-Math.PI/2;p.position.set(0,.080,z);if(reverse)p.rotation.z=Math.PI;
+ p.renderOrder=2;scene.add(p);foamBands.push(p);
+}
+const driftGeo=new THREE.PlaneGeometry(1,1),driftMat=new THREE.MeshBasicMaterial({color:0xd9e7e5,transparent:true,opacity:.30,depthWrite:false,side:THREE.DoubleSide});
+const driftMesh=new THREE.InstancedMesh(driftGeo,driftMat,270);driftMesh.frustumCulled=false;driftMesh.renderOrder=3;scene.add(driftMesh);
+const drifting=[];const driftDummy=new THREE.Object3D();
+for(let i=0;i<270;i++)drifting.push({x:rr(-27,27),z:rr(6.88,14.46),length:rr(.10,.59),width:rr(.015,.038),phase:rr(0,6.283),speed:rr(.6,1.5)});
+// Remove the old floating white ribbons while retaining deterministic scene random seeds.
+for(const band of foamBands){scene.remove(band);band.geometry.dispose();band.material.dispose();}
+scene.remove(driftMesh);driftGeo.dispose();driftMat.dispose();foamMap.dispose();
+function updateWaterDetails(time,dt,flow){waterUniforms.uTime.value+=dt*flow;}
+for(const zz of [6.48,14.85]){box(53.9,.40,.44,wetStone,0,-.12,zz);addCube(0,.145,zz,54,.15,.51,'trim');
+for(let i=-26;i<27;i+=2.25){addCube(i,.1,zz,.042,.11,.49,'dark')}}
+// At either end, the river opens through the outer island edge.
+for(const x of [-26.8,26.8]){box(.2,.3,8.2,deepStone,x,-.12,10.65)}
+
+// Low stone bridge, balusters, arches and damp pavement.
+const bridgeX=7.1;
+box(4.45,.30,10.8,wetStone,bridgeX,.39,10.68);
+box(4.4,.10,10.85,pavingMaterial,bridgeX,.59,10.68);
+for(let side of [-1,1]){let x=bridgeX+side*2.09;
+ addCube(x,.91,10.68,.20,.52,10.8,'stone');addCube(x,1.20,10.68,.30,.105,10.9,'trim');
+ for(let z=5.6;z<=15.4;z+=.53){addCube(x,1.50,z,.065,.43,.065,'stone');}
+ for(let t=0;t<=22;t++){let z=5.45+t*.48;let y=.39-.30*Math.sin(Math.PI*t/22);addBeam([x,y,z],[x,y+.20,z],.055,'stone');}}
+for(let z of [5.72,15.6]){addCube(bridgeX,.34,z,4.6,.13,.17,'trim')}
+for(let step=0;step<26;step++){let t=step/25*Math.PI;for(let sx of [-1,1]){let x=bridgeX+sx*2.20;let z=10.68-4.45*Math.cos(t);let y=-.01+.56*Math.sin(t);if(step>0)addBeam([x,-.01+.56*Math.sin((step-1)/25*Math.PI),10.68-4.45*Math.cos((step-1)/25*Math.PI)],[x,y,z],.075,'trim');}}
+
+// The Eiffel Tower — 1:10 relative scale, 33 units high, four separate hollow riveted lattice legs.
+buildingTower=true;
+const CX=-5.0,CZ=-4.1;
+function towerP(y){const pts=[[0,6.25],[1.3,5.94],[3.1,5.13],[5.7,3.89],[11.5,2.18],[17,1.52],[22,1.07],[27.6,.66],[29,.55]];for(let i=0;i<pts.length-1;i++)if(y<=pts[i+1][0]){let k=(y-pts[i][0])/(pts[i+1][0]-pts[i][0]);return THREE.MathUtils.lerp(pts[i][1],pts[i+1][1],k);}return .55;}
+function tp(x,y,z){return [CX+x,y+.12,CZ+z]}
+const maxTower=29.0;
+function legCorner(sx,sz){let n=54;for(let i=0;i<n;i++){let y=i/n*maxTower, y2=(i+1)/n*maxTower,p=towerP(y),q=towerP(y2),b=.54-(y/maxTower)*.32;
+ // Four true spatial corner rails per leg, not flat crossed lines.
+ const corners=[[1,1],[-1,1],[-1,-1],[1,-1]];
+ for(let c=0;c<4;c++){let [ox,oz]=corners[c];let a=tp(sx*p+ox*b,y,sz*p+oz*b),d=tp(sx*q+ox*(b-.005),y2,sz*q+oz*(b-.005));addBeam(a,d,Math.max(.036,.104*(1-y/maxTower)+.013),c===0?'bright':'bronze');
+ let next=corners[(c+1)%4],a2=tp(sx*p+next[0]*b,y,sz*p+next[1]*b),d2=tp(sx*q+next[0]*(b-.005),y2,sz*q+next[1]*(b-.005));
+ if(i%2===0){addBeam(a,d2,.024+(1-y/maxTower)*.013,'dark');addBeam(a2,d,.024+(1-y/maxTower)*.013,'bronze');}
+ if(i%3===0)addBeam(a,a2,.03,'bright');}
+ if(i%4===0){let rr1=.16;addBeam(tp(sx*p-b,y,sz*p-b),tp(sx*p+b,y,sz*p+b),rr1*.25,'bronze');}
+ }
+ for(let j=0;j<3;j++){let x=sx*6.25+(j-1)*.39,z=sz*6.25+(j-1)*.39;addCube(CX+x,.32,CZ+z,.47,.32,.47,'stone')}
+}
+for(let sx of [-1,1])for(let sz of [-1,1])legCorner(sx,sz);
+function faceLattice(y0,y1,steps){for(let j=0;j<steps;j++){let y=y0+(y1-y0)*j/steps,yn=y0+(y1-y0)*(j+1)/steps;
+ for(let s of [-1,1]){let a=towerP(y),b=towerP(yn);
+ // Straight X trusses on all four outer faces of the tower.
+ for(let planeAxis=0;planeAxis<2;planeAxis++){
+ let p1,p2,q1,q2;if(planeAxis===0){p1=tp(-a,y,s*a);p2=tp(a,y,s*a);q1=tp(-b,yn,s*b);q2=tp(b,yn,s*b)}
+ else{p1=tp(s*a,y,-a);p2=tp(s*a,y,a);q1=tp(s*b,yn,-b);q2=tp(s*b,yn,b)}
+ addBeam(p1,q2,y<6?.028:.019,'bronze');addBeam(p2,q1,y<6?.028:.019,'bright');
+ if(j%2===0){addBeam(p1,p2,.037,'bronze');}
+ }
+ }
+ }}
+faceLattice(5.7,11.5,15);faceLattice(11.5,27.6,46);faceLattice(27.6,29,5);
+// Layered segmented flying arches between the four spread supports under level one.
+for(let axis=0;axis<2;axis++)for(let sign of [-1,1]){
+for(let lane of [-.19,.19]){
+let prev=null;for(let j=0;j<=38;j++){let t=j/38,x=-5.77+11.54*t, yy=1.03+3.9*Math.pow(Math.sin(Math.PI*t),.90);let z=sign*(5.95-2.00*Math.sin(Math.PI*t));let pt=axis===0?tp(x,yy,z+lane):tp(z+lane,yy,x);if(prev)addBeam(prev,pt,.077,'bright');prev=pt;
+ if(j%3===0 && j>2&&j<36){let up=axis===0?tp(x,5.65,sign*3.93+lane):tp(sign*3.93+lane,5.65,x);addBeam(pt,up,.024,'bronze');}}
+}
+}
+// Platform decks are rings with open interiors, walkways, guard rails and layered structural bands.
+function towerDeck(y,rad,thick,railHeight){let ry=y+.12;for(let i=0;i<4;i++){
+ let alongX=(i<2),s=(i%2===0?-1:1);let len=rad*2+.45;
+ if(alongX){addCube(CX,ry,CZ+s*rad,len,thick,.45,'dark');addCube(CX,ry+thick,CZ+s*rad,len,.075,.49,'bright');}
+ else{addCube(CX+s*rad,ry,CZ,.45,thick,len,'dark');addCube(CX+s*rad,ry+thick,CZ,.49,.075,len,'bright');}
+ for(let t=-rad;t<=rad;t+=.46){if(alongX)addBeam(tp(t,y+thick/2+.08,s*rad),tp(t,y+thick/2+.08+railHeight,s*rad),.018,'iron');else addBeam(tp(s*rad,y+thick/2+.08,t),tp(s*rad,y+thick/2+.08+railHeight,t),.018,'iron');}
+ if(alongX){addBeam(tp(-rad,y+thick/2+.08+railHeight,s*rad),tp(rad,y+thick/2+.08+railHeight,s*rad),.032,'iron');}
+ else{addBeam(tp(s*rad,y+thick/2+.08,-rad),tp(s*rad,y+thick/2+.08,rad),.035,'iron');addBeam(tp(s*rad,y+thick/2+.08+railHeight,-rad),tp(s*rad,y+thick/2+.08+railHeight,rad),.032,'iron');}
+ }
+ for(let j=0;j<5;j++){let h=y-.36+j*.07,rr=rad+(j%2)*.09;for(let s of [-1,1]){addBeam(tp(-rr,h,s*rr),tp(rr,h,s*rr),.029,'bright');addBeam(tp(s*rr,h,-rr),tp(s*rr,h,rr),.029,'bright');}}
+}
+towerDeck(5.7,4.12,.43,.51);towerDeck(11.5,2.29,.32,.40);towerDeck(27.6,.75,.26,.33);
+// Inner shafts, mezzanine beams, summit cage and antennas.
+for(let i=0;i<43;i++){const y=5.7+i*.50,q=y+.50;for(let sx of [-1,1]){const r=Math.max(.2,towerP(y)*.32),r2=Math.max(.2,towerP(q)*.32);addBeam(tp(sx*r,y,-r),tp(sx*r2,q,-r2),.028,'dark');addBeam(tp(-r,y,sx*r),tp(-r2,q,sx*r2),.028,'dark');}}
+for(let j=0;j<8;j++){let y=28+j*.43,p=towerP(Math.min(y,29));for(let s of [-1,1]){addBeam(tp(-p,y,s*p),tp(p,y,s*p),.028,'bright');addBeam(tp(s*p,y,-p),tp(s*p,y,p),.028,'bright')}}
+for(let i=0;i<4;i++){let y=29+i*.82,r=.56-i*.13;for(let sx of [-1,1])for(let sz of [-1,1])addBeam(tp(sx*r,y,sz*r),tp(sx*(r-.12),y+.82,sz*(r-.12)),.042,'bronze');}
+addBeam(tp(0,32.05,0),tp(0,33,0),.04,'bright');
+for(let s of [-1,1])addBeam(tp(-s*.1,32.5,0),tp(s*.10,32.5,0),.019,'bright');
+
+buildingTower=false;
+// Sparkles sit on actual iron beams, not on an imaginary bounding box.
+// A private random generator keeps the existing city layout unchanged.
+let lightSeed=7691;function lightRandom(){lightSeed=(1664525*lightSeed+1013904223)>>>0;return lightSeed/4294967296;}
+const towerBeamSamples=[];let towerBeamLength=0;
+for(const name of ['tower_bronze','tower_bright','tower_dark'])for(const beam of beamPools.get(name)||[]){
+ const length=Math.hypot(...beam.a.map((v,i)=>beam.b[i]-v));towerBeamLength+=length;towerBeamSamples.push({beam,end:towerBeamLength});
+}
+const sparkleCount=1250,sparklePositions=new Float32Array(sparkleCount*3),sparklePhases=new Float32Array(sparkleCount);
+for(let i=0;i<sparkleCount;i++){
+ const distance=lightRandom()*towerBeamLength;let low=0,high=towerBeamSamples.length-1;
+ while(low<high){const middle=(low+high)>>1;if(towerBeamSamples[middle].end<distance)low=middle+1;else high=middle;}
+ const beam=towerBeamSamples[low].beam,t=lightRandom();
+ for(let k=0;k<3;k++)sparklePositions[i*3+k]=beam.a[k]+(beam.b[k]-beam.a[k])*t;
+ sparklePhases[i]=lightRandom()*100;
+}
+const sparkleGeometry=new THREE.BufferGeometry();
+sparkleGeometry.setAttribute('position',new THREE.BufferAttribute(sparklePositions,3));
+sparkleGeometry.setAttribute('aPhase',new THREE.BufferAttribute(sparklePhases,1));
+const showUniforms={uTime:{value:0},uNight:{value:0},uEnabled:{value:1},uPixelRatio:{value:renderer.getPixelRatio()}};
+const sparkleMaterial=new THREE.ShaderMaterial({
+ uniforms:showUniforms,transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,
+ vertexShader:`
+ uniform float uTime,uNight,uEnabled,uPixelRatio;
+ attribute float aPhase;varying float vGlow;
+ void main(){
+   float pulse=pow(max(0.,sin(uTime*(1.25+fract(aPhase)*1.7)+aPhase*7.13)),22.);
+   float secondary=pow(max(0.,sin(uTime*.83+aPhase*13.7)),40.);
+   float cycle=mod(uTime,28.);
+   float envelope=.22+.78*smoothstep(0.,3.,cycle)*(1.-smoothstep(23.,28.,cycle));
+   vGlow=(pulse+secondary*.3)*uNight*uEnabled*envelope;
+   vec4 mv=modelViewMatrix*vec4(position,1.);
+   gl_PointSize=clamp((2.5+vGlow*3.0)*uPixelRatio*40./max(8.,-mv.z),1.,17.);
+   gl_Position=projectionMatrix*mv;
+ }`,
+ fragmentShader:`
+ varying float vGlow;
+ void main(){
+   vec2 p=gl_PointCoord-.5;float r=length(p)*2.;
+   float halo=exp(-r*r*9.0)*.28;
+   float core=exp(-r*r*65.0);
+   float cross=exp(-abs(p.x)*85.)*exp(-abs(p.y)*12.)+exp(-abs(p.y)*85.)*exp(-abs(p.x)*12.);
+   float alpha=(halo+core+cross*.15)*vGlow;
+   if(alpha<.005)discard;
+   gl_FragColor=vec4(vec3(1.,.94,.79)*1.7,alpha);
+   #include <tonemapping_fragment>
+   #include <colorspace_fragment>
+ }`
+});
+const towerSparkles=new THREE.Points(sparkleGeometry,sparkleMaterial);towerSparkles.frustumCulled=false;scene.add(towerSparkles);
+// Four restrained uplights illuminate the ironwork and the foot of the tower.
+const towerUplights=[];
+for(const [sx,sz] of [[-1,-1],[-1,1],[1,-1],[1,1]]){
+ const lamp=new THREE.SpotLight(0xffb85c,0,48,.38,.75,1.25);
+ lamp.position.set(CX+sx*6.6,.45,CZ+sz*6.6);lamp.target.position.set(CX+sx*.7,19,CZ+sz*.7);
+ scene.add(lamp,lamp.target);towerUplights.push(lamp);
+}
+// Soft rotating summit beams. No shadows or large full-screen flashing.
+const beaconPivot=new THREE.Group();beaconPivot.position.set(CX,32.5,CZ);scene.add(beaconPivot);
+const beaconUniforms={uPower:{value:0}};
+const beaconMaterial=new THREE.ShaderMaterial({uniforms:beaconUniforms,side:THREE.DoubleSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ vertexShader:`varying vec2 vUv;varying vec3 vNormal;varying vec3 vView;void main(){vUv=uv;vec4 p=modelViewMatrix*vec4(position,1.);vView=-p.xyz;vNormal=normalMatrix*normal;gl_Position=projectionMatrix*p;}`,
+ fragmentShader:`uniform float uPower;varying vec2 vUv;varying vec3 vNormal;varying vec3 vView;void main(){float edge=pow(abs(dot(normalize(vNormal),normalize(vView))),.65);float fade=pow(1.-vUv.y,1.8)*smoothstep(0.,.04,vUv.y);gl_FragColor=vec4(.67,.78,1.,edge*fade*uPower*.065);}`});
+for(const side of [-1,1]){const geo=new THREE.CylinderGeometry(2.2,.055,42,24,1,true);geo.translate(0,21,0);geo.rotateZ(side*Math.PI/2);const beam=new THREE.Mesh(geo,beaconMaterial);beaconPivot.add(beam);}
+
+// Mansard-roof buildings surrounding, never obscuring the Eiffel silhouette.
+const buildings=[];const glass=new THREE.MeshStandardMaterial({color:0x273c4c,metalness:.38,roughness:.22,emissive:0x101b22,emissiveIntensity:.19});
+const warmWindow=new THREE.MeshStandardMaterial({color:0x7b6952,metalness:.1,roughness:.33,emissive:0xca8756,emissiveIntensity:.48});
+// Fine limestone courses, porous surface and rain staining at the cornice.
+function facadeTexture(){
+ const c=document.createElement('canvas');c.width=512;c.height=512;const g=c.getContext('2d');g.fillStyle='#d2cabb';g.fillRect(0,0,512,512);
+ for(let row=0;row<16;row++)for(let col=-1;col<9;col++){let x=col*70+(row%2)*35,y=row*32,v=Math.round(rr(185,212));g.fillStyle=`rgb(${v+8},${v+3},${v-8})`;g.fillRect(x+1,y+1,68,30);}
+ for(let i=0;i<7500;i++){g.fillStyle=rnd()>.5?'#fff6':'#554a3515';g.fillRect(rr(0,512),rr(0,512),1,1);}
+ for(let i=0;i<90;i++){let x=rr(0,512),y=rr(0,512),h=rr(8,70);let gradient=g.createLinearGradient(0,y,0,y+h);gradient.addColorStop(0,'#4c493b18');gradient.addColorStop(1,'#4c493b00');g.fillStyle=gradient;g.fillRect(x,y,rr(1,6),h);}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t;
+}
+const facadeMap=facadeTexture();
+const curtainMaterials=[0x9d9787,0xb2aa97,0x727b78].map(color=>new THREE.MeshStandardMaterial({color,roughness:1}));
+function makeRoof(x,z,w,d,y,h,mat){const w2=w-.92,d2=d-.9;const p=[[-w/2,0,-d/2],[w/2,0,-d/2],[w/2,0,d/2],[-w/2,0,d/2],[-w2/2,h,-d2/2],[w2/2,h,-d2/2],[w2/2,h,d2/2],[-w2/2,h,d2/2]];
+ const faces=[[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[4,5,6,7]],pos=[],uv=[];
+ for(let f of faces){const tris=[f[0],f[1],f[2],f[0],f[2],f[3]];for(let k=0;k<6;k++){pos.push(...p[tris[k]]);let uvp=[[0,0],[1,0],[1,1],[0,0],[1,1],[0,1]][k];uv.push(...uvp)}}
+ let geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.computeVertexNormals();return mesh(geo,mat,x,y,z);
+}
+function buildFacade(x,z,w,d,h,ncol,nfloor,front){const side=front?1:-1,fz=z+side*(d/2+.045);
+ for(let f=0;f<nfloor;f++)for(let i=0;i<ncol;i++){
+ const wx=x+(i-(ncol-1)/2)*(w-1.15)/ncol,wy=.97+f*(h-.9)/nfloor;const winW=.70,winH=.99;
+ // Dark recess surrounded by four projecting stone reveals.
+ addCube(wx,wy,fz,winW+.17,winH+.16,.065,'dark');
+ for(const edge of [-1,1]){addCube(wx+edge*(winW*.5+.065),wy,fz+side*.075,.13,winH+.25,.22,'trim');addCube(wx,wy+edge*(winH*.5+.065),fz+side*.075,winW+.26,.13,.22,'trim');}
+ const lit=rnd()>.73;const pane=box(winW,winH,.06,lit?warmWindow:glass,wx,wy,fz+side*.066,false);pane.castShadow=false;
+ if(rnd()>.30){const fabric=curtainMaterials[Math.floor(rnd()*curtainMaterials.length)];for(const edge of [-1,1])box(.12,winH*.88,.014,fabric,wx+edge*winW*.34,wy,fz+side*.102,false);}
+ addCube(wx,wy,fz+side*.115,.046,winH,.08,'trim');addCube(wx,wy-.015,fz+side*.118,winW,.047,.08,'trim');
+ addCube(wx,wy-winH*.5-.075,fz+side*.052,winW+.29,.075,.23,'trim');
+ if(f===1&&i%2===0){addCube(wx,wy-winH*.48-.14,fz+side*.32,winW+.25,.06,.55,'stone');
+ for(let j=-4;j<=4;j++)addBeam([wx+j*.112,wy-winH*.46-.09,fz+side*.59],[wx+j*.112,wy-winH*.46+.42,fz+side*.59],.013,'iron');
+ addBeam([wx-.55,wy-winH*.46+.44,fz+side*.59],[wx+.55,wy-winH*.46+.44,fz+side*.59],.02,'iron');}
+ }
+}
+function building(x,z,w,d,h,option={}){const nf=Math.max(2,Math.round((h-1)/1.75)), nc=Math.max(2,Math.round(w/1.64));buildings.push({x,z,w,d,h:h+1.95});
+ const facade=paleStone.clone();facade.color.setHSL(.10+rr(-.018,.018),rr(.09,.16),rr(.64,.77));facade.roughness=rr(.77,.94);
+ facade.map=facadeMap.clone();facade.map.repeat.set(Math.max(1,w/5),Math.max(1,h/5));facade.map.needsUpdate=true;facade.bumpMap=facade.map;facade.bumpScale=.018;
+ box(w,h,d,facade,x,.10+h/2,z);
+ // Layered cornices and deeper entrance steps give the facade real relief.
+ for(const side of [-1,1]){addCube(x,h+.05,z+side*(d/2+.05),w+.25,.14,.31,'trim');addCube(x,h-.13,z+side*(d/2+.035),w+.10,.09,.19,'stone');}
+ for(let step=0;step<2;step++)addCube(x,.15+step*.065,z+d*.5+.27-step*.07,1.34-step*.12,.08,.44-step*.12,'stone');
+ // Smaller framed windows on exposed end walls.
+ for(const side of [-1,1])for(let floor=1;floor<nf;floor++)for(let k=0;k<2;k++){
+ const sy=.9+floor*(h-.9)/nf,sz=z+(k-.5)*d*.46,sx=x+side*(w*.5+.045);
+ box(.045,.85,.56,glass,sx,sy,sz,false);
+ for(const edge of [-1,1]){addCube(sx+side*.04,sy,sz+edge*.34,.15,1.03,.12,'trim');addCube(sx+side*.04,sy+edge*.48,sz,.15,.12,.8,'trim');}
+ addCube(sx+side*.10,sy-.53,sz,.29,.08,.85,'trim');
+ }
+ // Narrow zinc gutters and downpipes cast fine contact shadows on the facade.
+ for(const side of [-1,1]){addBeam([x-w*.47,.25,z+side*(d*.5+.13)],[x-w*.47,h+.14,z+side*(d*.5+.13)],.028,'iron');addBeam([x-w*.5,h+.14,z+side*(d*.5+.13)],[x+w*.5,h+.14,z+side*(d*.5+.13)],.035,'iron');}
+ for(let f=1;f<nf;f++){let yy=.1+f*h/nf;addCube(x,yy,z+d/2+.04,w,.065,.17,'trim');addCube(x,yy,z-d/2-.04,w,.065,.17,'trim');}
+ for(let side of [-1,1])addCube(x,.23,z+side*(d/2+.02),w,.24,.16,'trim');
+ buildFacade(x,z,w,d,h,nc,nf,true);buildFacade(x,z,w,d,h,nc,nf,false);
+ let top=.1+h;makeRoof(x,z,w+.13,d+.13,top,1.48,option.dark?roofAlt:roofMaterial);
+ addCube(x,top+1.51,z,w-.83,.14,d-.82,'roof');
+ for(let i=0;i<Math.max(2,nc-1);i++){let dx=x+(i-(Math.max(2,nc-1)-1)/2)*(w-1.55)/Math.max(2,nc-1);
+ for(let side of [-1,1]){let dz=z+side*(d/2-.40);addCube(dx,top+.83,dz,.68,.90,.21,'stone');
+ const pane=box(.47,.59,.045,glass,dx,top+.86,dz+side*.134,false);pane.castShadow=false;
+ addCube(dx,top+.88,dz+side*.168,.042,.61,.055,'trim');addCube(dx,top+1.28,dz,.86,.10,.42,'roof');}}
+ for(let k=0;k<2;k++){let dx=x+(k?1:-1)*(w*.34),dz=z+(k?1:-1)*d*.20;addCube(dx,top+1.77,dz,.43,.62,.44,'stone');addCube(dx,top+2.10,dz,.59,.10,.57,'trim');
+ for(let i=0;i<2;i++)addCube(dx+(i? .10:-.10),top+2.22,dz,.092,.24,.12,'dark');}
+ // A storefront/arched entrance, supported by actual masonry and a glass transom.
+ let dz=z+d*.5+.082;addCube(x,.74,dz,.98,1.26,.1,'dark');addCube(x,.77,dz+.08,.76,1.08,.06,'iron');addCube(x,.83,dz+.123,.022,1.05,.06,'trim');addCube(x,1.48,dz+.01,1.18,.15,.24,'trim');
+ // Some facades have corner quoin blocks.
+ for(let side of [-1,1])for(let j=0;j<nf*3;j++)addCube(x+side*(w/2+.025),.4+j*(h-.2)/(nf*3),z+d/2+.015,.13,.22,.20,'trim');
+}
+building(-21,-11.4,7.2,5.8,5.75);
+building(-21,-3.4,7.1,6.3,6.45,{dark:true});
+building(-19,2.7,5.8,3.6,5.10);
+building(16.0,-15.7,7.5,5.1,6.6);
+building(23.0,-12.2,5.5,5.8,5.95,{dark:true});
+building(20.9,-3.8,8.0,6.2,7.15);
+building(17.9,3.0,6.3,4.4,5.85,{dark:true});
+building(-8.2,-17.8,8.8,4.75,6.1,{dark:true});
+building(2.3,-17.8,8.0,4.55,6.95);
+building(8.9,-16.0,4.7,5.7,6.3,{dark:true});
+// A compact riverside café, with striped canopy and tables.
+building(-19,17.55,7.0,4.3,3.95,{dark:true});
+const awnMat=new THREE.MeshStandardMaterial({color:0x9d6b64,roughness:.83,side:THREE.DoubleSide});
+const awnStripe=new THREE.MeshStandardMaterial({color:0xe3ccb6,roughness:.84});
+for(let i=0;i<10;i++){let m=box(.57,.065,1.18,i%2?awnMat:awnStripe,-22.05+i*.6,2.48,20.27);m.rotation.x=.14;}
+for(let k=0;k<3;k++){let tx=-21+k*2.1,tz=20.05;addBeam([tx,.22,tz],[tx,1.12,tz],.045,'iron');box(.9,.04,.9,wetStone,tx,1.12,tz);}
+
+// Railings, street lamps, benches, plane trees.
+const streetLights=[];
+function lamp(x,z,scale=1){const y=.13;addBeam([x,y,z],[x,y+2.42*scale,z],.050,'iron');addCube(x,y+.13,z,.30,.17,.28,'dark');
+addBeam([x,y+2.42*scale,z],[x+.20*scale,y+2.58*scale,z],.042,'iron');
+const b=mesh(new THREE.SphereGeometry(.155*scale,10,8),glowGold,x+.2*scale,y+2.42*scale,z,false,false);b.castShadow=false;
+let rim=box(.33*scale,.035,.33*scale,blackIron,x+.2*scale,y+2.59*scale,z);rim.castShadow=false;
+if(rnd()<.27){const p=new THREE.PointLight(0xffc68b,.37,8,2);p.position.set(x,y+2.4*scale,z);scene.add(p);streetLights.push(p);}}
+for(let x=-24;x<=24;x+=5.7){lamp(x,5.35,.82);if(Math.abs(x-bridgeX)>3.5)lamp(x,16.15,.82);}
+for(let [x,z] of [[-13,-11],[-13,1],[10,-12],[10,1],[-24,-16],[23,-18],[13,5]])lamp(x,z,1.0);
+// Individual folded leaves, open branching and irregular crowns replace solid balls.
+const leafGeometry=new THREE.BufferGeometry();
+leafGeometry.setAttribute('position',new THREE.Float32BufferAttribute([0,-.5,0,-.34,-.12,.035,-.45,.13,0,-.20,.27,.025,0,.55,0,.20,.27,.025,.45,.13,0,.34,-.12,.035,0,.05,.09],3));
+leafGeometry.setIndex([0,1,8,1,2,8,2,3,8,3,4,8,4,5,8,5,6,8,6,7,8,7,0,8]);leafGeometry.computeVertexNormals();
+const leafMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.83,metalness:0,side:THREE.DoubleSide});
+const leafInstances=[];
+// Soil pockets keep each tree rooted in a planted pavement opening.
+function soilTexture(){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.fillStyle='#514333';g.fillRect(0,0,256,256);for(let i=0;i<13000;i++){let v=Math.round(rr(38,95));g.fillStyle=`rgb(${v+12},${v+3},${Math.max(20,v-12)})`;g.beginPath();g.ellipse(rr(0,256),rr(0,256),rr(.3,2.2),rr(.3,1.4),0,0,Math.PI*2);g.fill();}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
+const soilMap=soilTexture(),soilMaterial=new THREE.MeshStandardMaterial({color:0xc5b499,map:soilMap,bumpMap:soilMap,bumpScale:.026,roughness:1});
+function treeBed(x,z,scale){
+ const radius=.72*scale,vertices=[0,.164,0],uv=[.5,.5],indices=[];
+ for(let i=0;i<=32;i++){let a=i/32*Math.PI*2,r=radius*(.98+.025*Math.sin(a*5));vertices.push(Math.cos(a)*r,.142,Math.sin(a)*r);uv.push(.5+Math.cos(a)*.5,.5+Math.sin(a)*.5);if(i>0)indices.push(0,i+1,i);}
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.computeVertexNormals();mesh(geo,soilMaterial,x,0,z,false,true);
+ for(let k=0;k<18;k++){let a=k/18*Math.PI*2;const stone=box(.22*scale,.085,.13*scale,wetStone,x+Math.cos(a)*(radius+.025),.16,z+Math.sin(a)*(radius+.025),false);stone.rotation.y=-a+Math.PI/2;}
+ for(let k=0;k<90;k++){let a=rr(0,6.283),r=rr(.35,.94)*radius;leafInstances.push({x:x+Math.cos(a)*r,y:rr(.18,.23),z:z+Math.sin(a)*r,size:rr(.035,.095)*scale,rx:rr(-.8,.8),ry:rr(0,6.283),rz:rr(-.5,.5),shade:rr(.18,.30),hue:rr(.18,.26)});}
+}
+function tree(x,z,scale=1){
+ treeBed(x,z,scale);
+ const h=rr(3.05,3.9)*scale,leanX=rr(-.16,.16)*scale,leanZ=rr(-.12,.12)*scale;
+ const trunk=mesh(new THREE.CylinderGeometry(.065*scale,.15*scale,h*.70,10,3),barkMaterial,x+leanX*.3,.14+h*.35,z+leanZ*.3);trunk.rotation.z=-leanX/h;
+ for(let root=0;root<5;root++){let a=root*1.256;addBeam([x,.22,z],[x+Math.cos(a)*.27*scale,.16,z+Math.sin(a)*.27*scale],.035*scale,'bark');}
+ for(let k=0;k<11;k++){
+   const angle=k*2.399+rr(-.22,.22),rad=rr(.42,.94)*scale;
+   const cy=h*(.63+.029*k),cx=x+leanX+Math.cos(angle)*rad,cz=z+leanZ+Math.sin(angle)*rad;
+   addBeam([x+leanX*.4,h*(.38+.025*k),z+leanZ*.4],[cx,cy,cz],(.036-k*.0017)*scale,'bark');
+   for(let j=0;j<3;j++){const a=angle+j*2.1,tx=cx+Math.cos(a)*.31*scale,tz=cz+Math.sin(a)*.31*scale;addBeam([cx,cy-.14*scale,cz],[tx,cy+.25*scale,tz],.010*scale,'bark');}
+   for(let j=0;j<100;j++){
+     const az=rr(0,Math.PI*2),v=rr(-1,1),r=Math.cbrt(rnd()),horizontal=Math.sqrt(1-v*v);
+     leafInstances.push({x:cx+Math.cos(az)*horizontal*r*.57*scale,y:cy+v*r*.55*scale,z:cz+Math.sin(az)*horizontal*r*.54*scale,size:rr(.11,.21)*scale,rx:rr(-1.4,1.4),ry:rr(0,6.283),rz:rr(-3.14,3.14),shade:rr(.26,.43),hue:rr(.21,.29)});
+   }
+ }
+}
+for(let [x,z,s] of [[-25,2,1.1],[-21,4.4,.91],[-15,4.5,.93],[-25,-18,.83],[-14,-17,.8],[11,4.0,1],[15,4.8,.95],[23,4.8,.86],[14,-19,1],[-25,17.5,.88],[-12,18.6,.95],[-5,18.3,.87],[3,18.4,.87],[14,18.7,.82],[24,18,.9]])tree(x,z,s);
+const leafMesh=new THREE.InstancedMesh(leafGeometry,leafMaterial,leafInstances.length);
+const leafDummy=new THREE.Object3D(),leafColor=new THREE.Color();
+leafInstances.forEach((leaf,i)=>{leafDummy.position.set(leaf.x,leaf.y,leaf.z);leafDummy.rotation.set(leaf.rx,leaf.ry,leaf.rz);leafDummy.scale.set(leaf.size*.83,leaf.size,leaf.size);leafDummy.updateMatrix();leafMesh.setMatrixAt(i,leafDummy.matrix);leafColor.setHSL(leaf.hue,.28,leaf.shade);leafMesh.setColorAt(i,leafColor);});
+leafMesh.castShadow=true;leafMesh.receiveShadow=true;leafMesh.instanceMatrix.needsUpdate=true;leafMesh.computeBoundingSphere();scene.add(leafMesh);
+function bench(x,z){addCube(x,.49,z,1.17,.11,.41,'stone');addCube(x,.83,z-.19,1.17,.51,.12,'stone');for(let s of [-1,1])addBeam([x+s*.5,.17,z],[x+s*.5,.46,z],.042,'iron');}
+for(let p of [[-13.3,5.5],[10.7,5.45],[-8,16.2],[1,16.2],[18,16.2]])bench(...p);
+// Forged embankment railings with regular posts.
+for(const zz of [6.14,15.33]){for(let i=-26;i<=26;i+=.83){if(zz>15 && i>4.8&&i<9.8)continue;addBeam([i,.12,zz],[i,.83,zz],.018,'iron');}for(let y of [.46,.83])addBeam([-26,y,zz],[26,y,zz],.027,'iron');}
+
+// Soft contact occlusion reinforces the *real shadow-map shadows* where objects
+// meet damp stone. Faded alpha is deliberately subtle, not a painted dark circle.
+function contactTexture(){const c=document.createElement('canvas');c.width=c.height=256;
+ const g=c.getContext('2d'),r=g.createRadialGradient(128,128,11,128,128,123);
+ r.addColorStop(0,'rgba(23,30,33,.24)');r.addColorStop(.35,'rgba(23,30,33,.15)');
+ r.addColorStop(.7,'rgba(25,32,34,.045)');r.addColorStop(1,'rgba(25,32,34,0)');
+ g.fillStyle=r;g.fillRect(0,0,256,256);return new THREE.CanvasTexture(c);}
+const contactMap=contactTexture();
+const contactMat=new THREE.MeshBasicMaterial({map:contactMap,transparent:true,opacity:.61,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+function contactShadow(x,z,w,d,y=.176){let p=new THREE.Mesh(new THREE.PlaneGeometry(w,d),contactMat);p.rotation.x=-Math.PI/2;p.position.set(x,y,z);p.renderOrder=1;scene.add(p);}
+for(const b of buildings)contactShadow(b.x,b.z,b.w+2.9,b.d+2.65);
+for(const [x,z,size] of [[-25,2,1.1],[-21,4.4,.91],[-15,4.5,.93],[-25,-18,.83],[-14,-17,.8],[11,4,1],[15,4.8,.95],[23,4.8,.86],[14,-19,1],[-25,17.5,.88],[-12,18.6,.95],[-5,18.3,.87],[3,18.4,.87],[14,18.7,.82],[24,18,.9]]) contactShadow(x,z,size*2,size*1.9,.178);
+for(const dx of [-6.25,6.25])for(const dz of [-6.25,6.25])contactShadow(CX+dx,CZ+dz,2.0,2.0,.168);
+// A soft bridge shadow falls over the glossy river without blocking water animation.
+// (The official Water reflection shader does not receive normal shadow maps.)
+const bridgeShade=new THREE.MeshBasicMaterial({map:contactMap,transparent:true,opacity:.53,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+const bridgeShadePlane=new THREE.Mesh(new THREE.PlaneGeometry(7.0,10.5),bridgeShade);
+bridgeShadePlane.rotation.x=-Math.PI/2;bridgeShadePlane.position.set(bridgeX+.63,.091,10.27);bridgeShadePlane.renderOrder=1;// Real reflection supplies bridge contact; the flat shadow overlay is omitted.
+
+// Cobblestone curb strips, drain grates and little puddles (not mirror-like everywhere).
+for(let z of [-14.95,2.95,17.0]){addCube(0,.145,z,52,.055,.17,'stone')}
+const puddleMat=new THREE.MeshPhysicalMaterial({color:0x66818b,metalness:.38,roughness:.14,transparent:true,opacity:.52,depthWrite:false,clearcoat:1,clearcoatRoughness:.10});
+for(let k=0;k<37;k++){let x=rr(-24,24),z=rr(-13,20);if(z>6.0 && z<15.0)continue;if(Math.abs(x-CX)<7.5&&Math.abs(z-CZ)<7.5)continue;let p=plane(rr(.14,.57),rr(.15,.41),puddleMat,x,.153,z);p.rotation.z=rr(0,Math.PI);}
+// Town details: cobblestone-lined garden plots and roof piping.
+for(let k=0;k<36;k++){let x=rr(-25,25),z=rr(-19,4);if(Math.abs(x-CX)<9&&Math.abs(z-CZ)<9)continue;addCube(x,.16,z,rr(.12,.32),.06,rr(.11,.3),'stone');}
+
+// Animated rain: streaks stop at building roofs, tower decks, pavement or water.
+function rainFloor(x,z){let f=z>6.6&&z<14.7?-.075:.16;
+ for(const b of buildings){if(Math.abs(x-b.x)<b.w/2&&Math.abs(z-b.z)<b.d/2)f=Math.max(f,b.h+.1);}
+ if(Math.abs(x-CX)<4.12&&Math.abs(z-CZ)<4.12)f=Math.max(f,5.84);
+ if(Math.abs(x-CX)<2.29&&Math.abs(z-CZ)<2.29)f=Math.max(f,11.63);
+ if(Math.abs(x-CX)<.75&&Math.abs(z-CZ)<.75)f=Math.max(f,27.7);
+ if(Math.abs(x-bridgeX)<2.24&&z>5.3&&z<16)f=Math.max(f,.65);
+ return f;}
+const NRAIN=920,rainSegments=new Float32Array(NRAIN*6),raindrops=[];let rainAmount=.35;
+for(let i=0;i<NRAIN;i++){const x=rr(-27,27),z=rr(-21,21);raindrops.push({x,z,y:rr(1,40),v:rr(10,19),len:rr(.20,.48),floor:rainFloor(x,z)});}
+const rainGeometry=new THREE.BufferGeometry();rainGeometry.setAttribute('position',new THREE.BufferAttribute(rainSegments,3).setUsage(THREE.DynamicDrawUsage));
+const rainLines=new THREE.LineSegments(rainGeometry,new THREE.LineBasicMaterial({color:0xc1dbe6,transparent:true,opacity:.35,depthWrite:false}));rainLines.frustumCulled=false;scene.add(rainLines);
+// Circular ripples expand and fade in the river after each impact.
+const rippleGeo=new THREE.RingGeometry(.94,1.0,36);rippleGeo.rotateX(-Math.PI/2);
+const ripples=[];let nextRipple=0;
+for(let i=0;i<48;i++){let mat=new THREE.MeshBasicMaterial({color:0xb9d2d5,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});let r=mesh(rippleGeo,mat,rr(-24,24),.094,rr(7,14.3),false,false);r.scale.setScalar(.03);ripples.push({mesh:r,phase:3,life:2});}
+function waterImpact(x,z){const r=ripples[nextRipple];nextRipple=(nextRipple+1)%ripples.length;r.mesh.position.x=x;r.mesh.position.z=z;r.phase=0;r.life=rr(1.3,2.0)}
+// Low, thin rolling river mist; never hide the architecture.
+function fogSprite(){const c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d');const rad=ctx.createRadialGradient(64,64,0,64,64,63);rad.addColorStop(0,'rgba(220,227,222,0.29)');rad.addColorStop(.32,'rgba(213,223,224,0.18)');rad.addColorStop(1,'rgba(215,219,221,0)');ctx.fillStyle=rad;ctx.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
+const mistTex=fogSprite(),mist=[];
+for(let i=0;i<13;i++){const mat=new THREE.MeshBasicMaterial({map:mistTex,transparent:true,depthWrite:false,opacity:rr(.13,.28),color:0xc6d9dd,side:THREE.DoubleSide});const p=plane(rr(8,15),rr(3.2,6.4),mat,rr(-28,28),rr(.20,.45),rr(7.0,14.4));mist.push({p,x:p.position.x,speed:rr(.1,.34)})}
+
+// Dawn sky shader with pink-peach horizon, cool blue-grey upper sky and warm rising sun.
+const sky=new THREE.Mesh(new THREE.SphereGeometry(370,48,28),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{uSun:{value:.65},uNight:{value:0}},vertexShader:`varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`varying vec3 p;uniform float uSun,uNight;void main(){vec3 d=normalize(p);float h=clamp(d.y*.88+.23,0.,1.);vec3 low=vec3(.89,.66,.61),mid=vec3(.63,.69,.76),high=vec3(.29,.43,.55);low=mix(low,vec3(.026,.037,.072),uNight);mid=mix(mid,vec3(.009,.016,.042),uNight);high=mix(high,vec3(.003,.006,.022),uNight);vec3 col=mix(low,mid,smoothstep(.08,.42,h));col=mix(col,high,smoothstep(.38,.96,h));vec3 sunlight=normalize(vec3(-.77,.31,.46));float ring=pow(max(dot(d,sunlight),0.),19.);float disc=pow(max(dot(d,sunlight),0.),480.);col+=vec3(.43,.23,.11)*ring*uSun*.9+vec3(1.,.63,.34)*disc*uSun*.25;gl_FragColor=vec4(col,1.);}`}));scene.add(sky);
+scene.fog=new THREE.FogExp2(0x9ca9af,.0046);
+scene.background=new THREE.Color(0x879cad);
+const hemi=new THREE.HemisphereLight(0xdde8ff,0x675d55,1.05);scene.add(hemi);
+const dawn=new THREE.DirectionalLight(0xffd8b9,2.65);dawn.position.set(-48,56,44);dawn.target.position.set(0,0,0);scene.add(dawn,dawn.target);dawn.castShadow=true;
+dawn.shadow.mapSize.set(4096,4096);dawn.shadow.camera.left=-39;dawn.shadow.camera.right=39;dawn.shadow.camera.top=40;dawn.shadow.camera.bottom=-38;dawn.shadow.camera.near=1;dawn.shadow.camera.far=144;dawn.shadow.bias=-.00015;dawn.shadow.normalBias=.034;dawn.shadow.radius=2.6;
+const cool=new THREE.DirectionalLight(0xa5c8dd,.48);cool.position.set(30,24,-32);scene.add(cool);
+// Natural filmic ground-to-building contact shading comes from soft shadow mapping.
+flushBatches();
+
+// Controls, animation and camera presets.
+let paused=false,spin=false,sunAmount=.65,mistAmount=.28,waterFlow=.62;
+let nightTarget=0,nightAmount=0,lightShowEnabled=true;
+const dawnFog=new THREE.Color(0x9ca9af),nightFog=new THREE.Color(0x101b31);
+const dawnHemi=new THREE.Color(0xdde8ff),nightHemi=new THREE.Color(0x7186b8);
+const dawnGround=new THREE.Color(0x675d55),nightGround=new THREE.Color(0x222538);
+function nightLightingState(n,brightness){
+ const dark=n*n*(3-2*n),lamps=THREE.MathUtils.smoothstep(n,.28,.86);
+ return {dark,lamps,sun:brightness*(1-dark),sunIntensity:(.18+brightness*3.8)*(1-dark),ambient:1.05*(1-dark)+.19*dark,exposure:1+brightness*.185+dark*.12};
+}
+function updateNightLighting(){
+ const state=nightLightingState(nightAmount,sunAmount),lampLevel=.55+sunAmount*.7;
+ sky.material.uniforms.uNight.value=state.dark;sky.material.uniforms.uSun.value=state.sun;
+ waterUniforms.uSun.value=state.sun;waterUniforms.uNight.value=state.dark;dawn.intensity=state.sunIntensity;
+ hemi.intensity=state.ambient;hemi.color.copy(dawnHemi).lerp(nightHemi,state.dark);hemi.groundColor.copy(dawnGround).lerp(nightGround,state.dark);
+ cool.intensity=.48*(1-state.dark)+.17*state.dark;
+ scene.fog.color.copy(dawnFog).lerp(nightFog,state.dark);scene.background.copy(scene.fog.color);renderer.setClearColor(scene.fog.color);
+ renderer.toneMappingExposure=state.exposure;
+ towerMaterials.forEach((mat,i)=>{mat.emissiveIntensity=state.lamps*lampLevel*(i===1?.72:i===0?.45:.20);});
+ towerUplights.forEach(lamp=>{lamp.intensity=state.lamps*lampLevel*26;});
+ glowGold.emissiveIntensity=1.6+state.lamps*2.2;warmWindow.emissiveIntensity=.48+state.lamps*.8;
+ streetLights.forEach(lamp=>{lamp.intensity=.37+state.lamps*3.8;});
+ showUniforms.uNight.value=THREE.MathUtils.smoothstep(nightAmount,.48,.92)*lampLevel;
+ showUniforms.uEnabled.value=lightShowEnabled?1:0;
+ towerSparkles.visible=nightAmount>.45&&lightShowEnabled;
+ beaconUniforms.uPower.value=showUniforms.uNight.value*(lightShowEnabled?1:0);
+ beaconPivot.visible=nightAmount>.45&&lightShowEnabled;
+ rainLines.material.opacity=.35*(1-state.dark)+.16*state.dark;
+ for(const m of mist)m.p.material.color.copy(dawnHemi).lerp(nightHemi,state.dark);
+}
+function syncNightControls(){
+ const label=nightTarget<.25?'새벽':nightTarget<.72?'푸른 저녁':'밤';
+ document.getElementById('timeOfDayText').textContent=label;
+ document.getElementById('timeOfDay').setAttribute('aria-valuetext',label);
+ document.getElementById('sceneTimeTitle').textContent=nightTarget>.72?'la nuit.':nightTarget>.25?"l’heure bleue.":"l’aube.";
+ document.getElementById('sceneSubtitle').textContent=nightTarget>.72?'황금빛 에펠탑이 반짝이는 파리의 밤':nightTarget>.25?'푸른 하늘 아래 조명이 켜지는 파리':'비가 지나가는 파리의 새벽';
+ document.getElementById('dawnPreset').setAttribute('aria-pressed',String(nightTarget===0));
+ document.getElementById('nightPreset').setAttribute('aria-pressed',String(nightTarget===1));
+ const button=document.getElementById('lightShow');button.disabled=nightTarget<.48;button.setAttribute('aria-pressed',String(lightShowEnabled));
+ button.textContent=nightTarget<.48?'라이트쇼 자동 켜짐':lightShowEnabled?'라이트쇼 끄기':'라이트쇼 켜기';
+ document.getElementById('showStatus').textContent=nightTarget<.48?'밤이 되면 에펠탑 조명이 켜집니다.':lightShowEnabled?'황금빛 조명 · 반짝임 · 회전 탐조등':'황금빛 조명만 감상 중';
+}
+function setNight(value){nightTarget=Math.max(0,Math.min(1,value));document.getElementById('timeOfDay').value=String(Math.round(nightTarget*100));syncNightControls();}
+
+function tweenCamera(position,target){const startP=camera.position.clone(),startT=controls.target.clone(),endP=new THREE.Vector3(...position),endT=new THREE.Vector3(...target);let elapsed=0;cameraTween=(dt)=>{elapsed+=dt;let t=Math.min(elapsed/1.18,1);t=t*t*(3-2*t);camera.position.copy(startP).lerp(endP,t);controls.target.copy(startT).lerp(endT,t);if(t>=1)cameraTween=null;};}
+let cameraTween=null;
+document.getElementById('overview').onclick=()=>tweenCamera([61,42,72],[-1,11.5,0]);
+document.getElementById('tower').onclick=()=>tweenCamera([28,22,33],[CX,14,CZ]);
+document.getElementById('riverside').onclick=()=>tweenCamera([20,10,33],[-4,0,10.8]);
+document.getElementById('spin').onclick=()=>{spin=!spin;controls.autoRotate=spin;document.getElementById('spin').textContent=spin?'↻ 회전 중':'⟳ 자동 회전'};
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'▶ 애니메이션':'Ⅱ 애니메이션';};
+function bindSlider(id,cb){const el=document.getElementById(id),out=document.getElementById(id+'Text');el.addEventListener('input',()=>{let v=Number(el.value)/100;out.textContent=el.value+'%';cb(v)});}
+bindSlider('rain',v=>{rainAmount=v;rainLines.visible=v>.02;});
+bindSlider('flow',v=>{waterFlow=v;waterUniforms.uSpeed.value=v;});
+bindSlider('waves',v=>{waterUniforms.uWaves.value=v;});
+bindSlider('light',v=>{sunAmount=v;updateNightLighting();});
+bindSlider('mist',v=>{mistAmount=v;});
+document.getElementById('timeOfDay').addEventListener('input',event=>setNight(Number(event.target.value)/100));
+document.getElementById('dawnPreset').onclick=()=>setNight(0);
+document.getElementById('nightPreset').onclick=()=>{lightShowEnabled=true;setNight(1);};
+document.getElementById('lightShow').onclick=()=>{lightShowEnabled=!lightShowEnabled;syncNightControls();updateNightLighting();};
+syncNightControls();updateNightLighting();
+const clock=new THREE.Clock();let elapsed=0;
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<720?47:36;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+window.addEventListener('resize',resize);resize();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);if(!paused){elapsed+=dt;
+ updateWaterDetails(elapsed,dt,waterFlow);
+ const rainNum=Math.round(NRAIN*rainAmount);
+ for(let i=0;i<NRAIN;i++){let r=raindrops[i],idx=i*6;if(i>=rainNum){rainSegments[idx+1]=-30;rainSegments[idx+4]=-30;continue;}
+ r.y-=dt*r.v;if(r.y<r.floor){if(r.floor<0 && rnd()<.12)waterImpact(r.x,r.z);r.y=rr(22,42);}
+ let y2=Math.max(r.floor,r.y-r.len);rainSegments[idx]=r.x;rainSegments[idx+1]=r.y;rainSegments[idx+2]=r.z;
+ rainSegments[idx+3]=r.x-.06;rainSegments[idx+4]=y2;rainSegments[idx+5]=r.z+.025;
+ }
+ rainGeometry.attributes.position.needsUpdate=true;
+ for(let r of ripples){if(r.phase<r.life){r.phase+=dt;let t=Math.min(r.phase/r.life,1);r.mesh.scale.setScalar(.025+t*.22);r.mesh.position.y=-.008;r.mesh.material.opacity=(1-t)*.10*rainAmount;}else{r.mesh.material.opacity=0;}}
+ for(let m of mist){m.p.position.x=m.x+Math.sin(elapsed*m.speed)*2.5;m.p.material.opacity=.44*mistAmount;}
+}
+nightAmount=THREE.MathUtils.damp(nightAmount,nightTarget,3.2,dt);
+if(Math.abs(nightAmount-nightTarget)<.0001)nightAmount=nightTarget;
+updateNightLighting();showUniforms.uTime.value=elapsed;beaconPivot.rotation.y=elapsed*.18;
+if(cameraTween)cameraTween(dt);controls.update();renderer.render(scene,camera);}
+animate();
+setTimeout(()=>{const loading=document.getElementById('loading');loading.style.opacity='0';setTimeout(()=>loading.remove(),950);},420);
+} catch(e){console.error(e);document.getElementById('error').style.display='flex';document.getElementById('errorDetail').textContent=e?.message??String(e);document.getElementById('loading').remove();}
+</script>
+</body>
+</html>
